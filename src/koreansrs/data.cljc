@@ -512,7 +512,6 @@
             ["애완" "愛玩" "Vorliebe, Lieblings- "]
             ["동물" "動物" "Tier"]
             ["약사" "藥師" "Apotheker (drug - teacher) "]
-            ["반납하다" "返納--" "zurückgeben "]
             ["연장" "延長" "Verlängerung (z.B. Visum) (delay - long) "]
             ["우표" "郵票" "Briefmarke"]
             ["도장" "圖章" "Stempel, Siegel"]
