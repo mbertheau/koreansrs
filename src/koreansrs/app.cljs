@@ -26,22 +26,23 @@
 (defn result [res]
   (let [active-char-index (r/atom 0)]
     (fn [res]
-      [:div.result
-       [:div.explanation
-        [:div
-         [:div.korean (:korean res)]
-         [:div.translation (:trans res)]]
-        [:div
-         [:div.hanja (map-indexed (fn [i c] ^{:key i}[:span {:on-click (fn [] (reset! active-char-index i))} c ]) (:hanja res))]
-         [:div.meaning (apply str (interpose " – " (map #(if (nil? %) "?" %) (:meaning res))))]]]
-       [:div.examples
-        (doall (for [[korean hanja meaning] (-> res :words (get @active-char-index))]
-                 ^{:key korean}
-                 [:div.example
-                  [:div.korean
-                   [:span {:on-click #(rf/dispatch [:assoc-in [:input] korean])} korean]]
-                  [:div.hanja hanja]
-                  [:div.meaning meaning]]))]])))
+      (let [linkify #(map-indexed (fn [i c] ^{:key i}[:span {:style {:cursor "pointer"} :on-click (fn [] (reset! active-char-index i))} c ]) %)]
+        [:div.result
+         [:div.explanation
+          [:div
+           [:div.hanja (linkify (:hanja res))]
+           [:div.meaning (apply str (interpose " – " (map #(if (nil? %) "?" %) (:meaning res))))]]
+          [:div
+           [:div.korean (linkify (:korean res))]
+           [:div.translation (:trans res)]]]
+         [:div.examples
+          (let [active-char (get (:hanja res) @active-char-index)]
+            (doall (for [[korean hanja meaning] (sort-by first (-> res :words (get @active-char-index)))]
+                     ^{:key korean}
+                     [:div.example {:style {:cursor "pointer"} :on-click #(rf/dispatch [:assoc-in [:input] korean])}
+                      [:div.korean korean]
+                      [:div.hanja (map #(if (= active-char %) [:span {:class "active"} %] %) hanja)]
+                      [:div.meaning meaning]])))]]))))
 
 (defn results []
   [:div {:id "results"}

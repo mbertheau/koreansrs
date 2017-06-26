@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 # -*- coding: utf-8
 
 from __future__ import unicode_literals
@@ -69,10 +70,10 @@ def main():
         matches.append(record)
 
 
-    print("{}/{}/{} non-matches:".format(len(sure_non_matches), len(non_matches), len(data)))
+    # print("{}/{}/{} non-matches:".format(len(sure_non_matches), len(non_matches), len(data)))
     # s = "\n".join(sure_non_matches)
     # s = "\n".join(non_matches)
-    s = "\n".join("{k}{ks}{h}{hs}{tr}".format(
+    s = "\n".join('["{k}" "{h}" "{tr}"]'.format(
         k=korean,
         ks=" " * (16 - len(korean) * 2),
         h=hanja,
@@ -80,6 +81,14 @@ def main():
         tr=translation,
         m=meaning)
                   for korean, hanja, translation, meaning in matches)
+    # s = "\n".join("{k}{ks}{h}{hs}{tr}".format(
+    #     k=korean,
+    #     ks=" " * (16 - len(korean) * 2),
+    #     h=hanja,
+    #     hs="\t",
+    #     tr=translation,
+    #     m=meaning)
+    #               for korean, hanja, translation, meaning in matches)
     # s = "\n".join("\t".join(r) for r in matches)
     print(s.encode('UTF-8'))
 
