@@ -33,21 +33,20 @@
 (defn result [res]
   (let [active-char-index (listen [:get-in [:char-index]])
         active-hanja-char (get (:hanja res) active-char-index)
-        linkify2 (fn [korean]
-                   (fn [hanja-char output-char index]
-                     ^{:key index}
-                     [:span {:class (when (= active-hanja-char hanja-char) "active")
-                             :style {:cursor "pointer"}
-                             :on-click (fn [] (rf/dispatch [:set-word korean index]))}
-                      output-char]))]
+        linkify2 (fn [word hanja-char output-char index]
+                   ^{:key index}
+                   [:span {:class (when (= active-hanja-char hanja-char) "active")
+                           :style {:cursor "pointer"}
+                           :on-click (fn [] (rf/dispatch [:set-word word index]))}
+                    output-char])]
     [:div.result
 
      [:div.explanation
       [:div
-       [:div.hanja (map (linkify2 (:korean res)) (:hanja res) (:hanja res) (range))]
+       [:div.hanja (map linkify2 (repeat (:korean res)) (:hanja res) (:hanja res) (range))]
        [:div.meaning (apply str (interpose " – " (map #(if (nil? %) "?" %) (:meaning res))))]]
       [:div
-       [:div.korean (map (linkify2 (:korean res)) (:hanja res) (:korean res) (range))]
+       [:div.korean (map linkify2 (repeat (:korean res)) (:hanja res) (:korean res) (range))]
        [:div.translation (:trans res)]]]
 
      [:div.examples
@@ -55,8 +54,8 @@
         (doall (for [[korean hanja meaning] (sort-by first (-> res :words (get active-char-index)))]
                  ^{:key korean}
                  [:div.example
-                  [:div.korean (map (linkify2 korean) hanja korean (range))]
-                  [:div.hanja (map (linkify2 korean) hanja hanja (range))]
+                  [:div.korean (map linkify2 (repeat korean) hanja korean (range))]
+                  [:div.hanja (map linkify2 (repeat korean) hanja hanja (range))]
                   [:div.meaning meaning]])))]]))
 
 (defn results []
