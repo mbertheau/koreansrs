@@ -9,6 +9,7 @@
    {:hanja data/hanja
     :words data/words
     :input "후식"
+    :char-index 0
     :output "후식"}))
 
 (rf/reg-event-db
@@ -21,6 +22,7 @@
  (fn [db [_ new-word new-char-index]]
    (-> db
        (assoc :input new-word)
+       (assoc :output new-word)
        (assoc :char-index new-char-index))))
 
 (rf/reg-sub
@@ -31,9 +33,10 @@
 (defn listen [v] (deref (rf/subscribe v)))
 
 (defn result [res]
-  (let [active-char-index (listen [:get-in [:char-index]])
+  (let [active-word (listen [:get-in [:output]])
+        active-char-index (listen [:get-in [:char-index]])
         active-hanja-char (get (:hanja res) active-char-index)
-        linkify2 (fn [word hanja-char output-char index]
+        linkify (fn [word hanja-char output-char index]
                    ^{:key index}
                    [:span {:class (when (= active-hanja-char hanja-char) "active")
                            :style {:cursor "pointer"}
@@ -43,19 +46,19 @@
 
      [:div.explanation
       [:div
-       [:div.hanja (map linkify2 (repeat (:korean res)) (:hanja res) (:hanja res) (range))]
+       [:div.hanja (map linkify (repeat (:korean res)) (:hanja res) (:hanja res) (range))]
        [:div.meaning (apply str (interpose " – " (map #(if (nil? %) "?" %) (:meaning res))))]]
       [:div
-       [:div.korean (map linkify2 (repeat (:korean res)) (:hanja res) (:korean res) (range))]
+       [:div.korean (map linkify (repeat (:korean res)) (:hanja res) (:korean res) (range))]
        [:div.translation (:trans res)]]]
 
      [:div.examples
       (let []
         (doall (for [[korean hanja meaning] (sort-by first (-> res :words (get active-char-index)))]
                  ^{:key korean}
-                 [:div.example
-                  [:div.korean (map linkify2 (repeat korean) hanja korean (range))]
-                  [:div.hanja (map linkify2 (repeat korean) hanja hanja (range))]
+                 [:div.example {:style {:font-weight (when (= korean active-word) "bolder")}}
+                  [:div.korean (map linkify (repeat korean) hanja korean (range))]
+                  [:div.hanja (map linkify (repeat korean) hanja hanja (range))]
                   [:div.meaning meaning]])))]]))
 
 (defn results []
@@ -72,8 +75,7 @@
           :as attrs}]
       (when-not (= value @ext)
         (do (reset! int value)
-            (reset! ext value)
-            (on-change value)))
+            (reset! ext value)))
       [:input (-> attrs
                   (assoc :value @int)
                   (assoc :on-change #(let [new-value (-> % .-target .-value)]
@@ -85,5 +87,5 @@
 (defn app []
   [:div
    [input {:value (listen [:get-in [:input]])
-           :on-change #(rf/dispatch [:assoc-in [:output] %])}]
+           :on-change #(rf/dispatch [:set-word % 0])}]
    [results]])
