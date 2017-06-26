@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Learn Korean</title>
+    <style type="text/css">
+     div.result > div.explanation > div {
+     }
+
+     div.explanation,
+     div.examples {
+         display: table;
+         border-spacing: 0.3em;
+     }
+
+     div.explanation > div,
+     div.examples > div.example {
+         display: table-row;
+     }
+
+     div.explanation > div > div,
+     div.example > div.korean,
+     div.example > div.hanja,
+     div.example > div.meaning {
+         display: table-cell;
+     }
+    </style>
+  </head>
+  <body>
+    <script src="main.js"></script>
+    <div id="app"></div>
+    <script>koreansrs.core.main();</script>
+  </body>
+</html>
