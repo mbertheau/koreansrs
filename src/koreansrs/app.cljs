@@ -71,12 +71,13 @@
         res-examples (listen [:res-examples])
         res-hanja-char (listen [:res-hanja-char])]
     [:div.examples
-     (doall (for [[korean hanja meaning] res-examples]
-              ^{:key korean}
-              [:div.example {:style {:font-weight (when (= korean active-word) "bolder")}}
-               [:div.korean (map (linkify korean res-hanja-char) hanja korean (range))]
-               [:div.hanja (map (linkify korean res-hanja-char) hanja hanja (range))]
-               [:div.meaning meaning]]))]))
+     (doall (map-indexed (fn [index [korean hanja meaning]]
+                   ^{:key index}
+                   [:div.example {:style {:font-weight (when (= korean active-word) "bolder")}}
+                    [:div.korean (map (linkify korean res-hanja-char) hanja korean (range))]
+                    [:div.hanja (map (linkify korean res-hanja-char) hanja hanja (range))]
+                    [:div.meaning meaning]])
+                 res-examples))]))
 
 (defn result []
   (let [{:keys [korean hanja trans meaning]} (listen [:result])
