@@ -9,7 +9,7 @@
 
 (when debug?
   (enable-console-print!)
-  (enable-re-frisk!))
+  (enable-re-frisk! {:kind->id->handler? true}))
 
 (defn mount-root []
   (rf/clear-subscription-cache!)

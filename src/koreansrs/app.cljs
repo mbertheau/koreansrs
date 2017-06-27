@@ -34,62 +34,73 @@
  :result
  :<- [:get-in [:output]]
  (fn [output _]
-   (data/korean output)))
+   (-> output data/korean first)))
+
+(rf/reg-sub
+ :char-index
+ :<- [:get-in [:char-index]]
+ (fn [char-index _]
+   (or char-index 0)))
 
 (rf/reg-sub
  :res-examples
  :<- [:result]
- :<- [:get-in [:char-index]]
+ :<- [:char-index]
  (fn [[result char-index] _]
-   (-> result :words (get (or char-index 0)))))
+   (sort-by first (-> result :words (get char-index)))))
+
+(rf/reg-sub
+ :res-hanja-char
+ :<- [:result]
+ :<- [:char-index]
+ (fn [[result char-index]]
+   (get (-> result :hanja) char-index)))
 
 (defn listen [v] (deref (rf/subscribe v)))
 
-(defn linkify [word hanja-char output-char index]
-  ^{:key index}
-  [:span {:class (when (= active-hanja-char hanja-char) "active")
-          :style {:cursor "pointer"}
-          :on-click (fn [] (rf/dispatch [:set-word word index]))}
-   output-char])
+(defn linkify [word active-hanja-char]
+  (fn [hanja-char output-char index]
+    ^{:key index}
+    [:span {:class (when (= active-hanja-char hanja-char) "active")
+            :style {:cursor "pointer"}
+            :on-click (fn [] (rf/dispatch [:set-word word index]))}
+     output-char]))
 
-(defn examples [words]
-  (let [active-word (listen [:get-in [:output]])]
+(defn examples []
+  (let [active-word (listen [:get-in [:output]])
+        res-examples (listen [:res-examples])
+        res-hanja-char (listen [:res-hanja-char])]
     [:div.examples
-     (doall (for [[korean hanja meaning] (sort-by first (-> res :words (get active-char-index)))]
+     (doall (for [[korean hanja meaning] res-examples]
               ^{:key korean}
               [:div.example {:style {:font-weight (when (= korean active-word) "bolder")}}
-               [:div.korean (map linkify (repeat korean) hanja korean (range))]
-               [:div.hanja (map linkify (repeat korean) hanja hanja (range))]
+               [:div.korean (map (linkify korean res-hanja-char) hanja korean (range))]
+               [:div.hanja (map (linkify korean res-hanja-char) hanja hanja (range))]
                [:div.meaning meaning]]))]))
 
-(defn result [res]
-  (let [active-word (listen [:get-in [:output]])
+(defn result []
+  (let [{:keys [korean hanja trans meaning]} (listen [:result])
+        active-word (listen [:get-in [:output]])
         active-char-index (listen [:get-in [:char-index]])
-        active-hanja-char (get (:hanja res) active-char-index)]
+        active-hanja-char (get hanja active-char-index)]
     [:div.result
 
      [:div.explanation
       [:div
-       [:div.hanja (map linkify (repeat (:korean res)) (:hanja res) (:hanja res) (range))]
-       [:div.meaning (apply str (interpose " – " (map #(if (nil? %) "?" %) (:meaning res))))]]
+       [:div.hanja (map (linkify korean active-hanja-char) hanja hanja (range))]
+       [:div.meaning (apply str (interpose " – " (map #(if (nil? %) "?" %) meaning)))]]
       [:div
-       [:div.korean (map linkify (repeat (:korean res)) (:hanja res) (:korean res) (range))]
-       [:div.translation (:trans res)]]]
+       [:div.korean (map (linkify korean active-hanja-char) hanja korean (range))]
+       [:div.translation (:trans result)]]]
 
-     [examples (-> res :words (get active-char-index))]
-     #_[:div.examples
-      (doall (for [[korean hanja meaning] (sort-by first )]
-               ^{:key korean}
-               [:div.example {:style {:font-weight (when (= korean active-word) "bolder")}}
-                [:div.korean (map linkify (repeat korean) hanja korean (range))]
-                [:div.hanja (map linkify (repeat korean) hanja hanja (range))]
-                [:div.meaning meaning]]))]]))
+     [examples]]))
 
 (defn results []
   [:div {:id "results"}
-   (doall (for [res (data/korean (listen [:get-in [:output]]))]
+   [result]
+   #_(doall (for [res (data/korean (listen [:get-in [:output]]))]
             ^{:key (:korean res)}
-            [result res]))])
+            [result]))])
 
 (defn input [{:keys [value on-change]
               :as attrs}]
