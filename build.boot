@@ -12,12 +12,15 @@
    [weasel "0.7.0"]
    [org.clojure/tools.nrepl "0.2.13"]
    [re-frame "0.9.4"]
-   [re-frisk "0.4.5"]])
+   [re-frisk "0.4.5"]
+   [binaryage/devtools "0.9.4"]
+   [powerlaces/boot-cljs-devtools "0.2.0"]])
 
 (require '[adzerk.boot-cljs :refer [cljs]]
          '[pandeiro.boot-http :refer [serve]]
          '[adzerk.boot-reload :refer [reload]]
-         '[adzerk.boot-cljs-repl :refer [cljs-repl start-repl]])
+         '[adzerk.boot-cljs-repl :refer [cljs-repl start-repl]]
+         '[powerlaces.boot-cljs-devtools :refer [cljs-devtools]])
 
 (deftask dev []
   (comp
@@ -25,6 +28,7 @@
    (watch)
    (reload :on-jsload 'koreansrs.core/mount-root)
    (cljs-repl)
+   (cljs-devtools)
    (cljs)
    (target :dir #{"target"})))
 
