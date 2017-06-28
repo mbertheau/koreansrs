@@ -7,9 +7,10 @@
 (def debug?
   ^boolean goog.DEBUG)
 
-(when debug?
-  (enable-console-print!)
-  (enable-re-frisk! {:kind->id->handler? true}))
+(defn dev-setup []
+  (when debug?
+    (enable-console-print!)
+    (enable-re-frisk! {:kind->id->handler? true})))
 
 (defn mount-root []
   (rf/clear-subscription-cache!)
@@ -17,4 +18,5 @@
 
 (defn ^:export main []
   (rf/dispatch-sync [:init-db])
+  (dev-setup)
   (mount-root))
