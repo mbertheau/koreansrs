@@ -6,11 +6,14 @@
 (rf/reg-event-db
  :init-db
  (fn [_ _]
-   {:hanja data/hanja
-    :words data/words
-    :input "후식"
-    :char-index 0
-    :output "후식"}))
+   (let [word (-> data/words
+                  rand-nth
+                  (get 0))]
+     {:hanja data/hanja
+      :words data/words
+      :input word
+      :char-index 0
+      :output word})))
 
 (rf/reg-event-db
  :assoc-in
