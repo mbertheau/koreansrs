@@ -28,6 +28,22 @@
        (assoc :output new-word)
        (assoc :char-index new-char-index))))
 
+(defn words-containing-one-hanja [c]
+  (filterv #(clojure.string/includes? (% 1) (str c)) data/words))
+
+(defn one-hanja-meaning [c]
+  (data/hanja c))
+
+(defn korean [input]
+  (let [matching-words (filter #(= input (% 0)) data/words)]
+    (for [matching-word matching-words
+          :let [[korean hanja trans] matching-word]]
+      {:korean input
+       :trans trans
+       :hanja hanja
+       :meaning (map one-hanja-meaning hanja)
+       :words (mapv words-containing-one-hanja hanja) })))
+
 (rf/reg-sub
  :get-in
  (fn [db [_ path]]
@@ -37,7 +53,7 @@
  :result
  :<- [:get-in [:output]]
  (fn [output _]
-   (-> output data/korean first)))
+   (-> output korean first)))
 
 (rf/reg-sub
  :char-index
@@ -51,6 +67,12 @@
  :<- [:char-index]
  (fn [[result char-index] _]
    (sort-by first (-> result :words (get char-index)))))
+
+#_(defsub res-examples
+  [result [:result]
+   char-index [:char-index]]
+  []
+  (sort-by first (-> result :words (get char-index))))
 
 (rf/reg-sub
  :res-hanja-char
@@ -88,14 +110,15 @@
         active-char-index (listen [:get-in [:char-index]])
         active-hanja-char (get hanja active-char-index)]
     [:div.result
-
      [:div.explanation
-      [:div
-       [:div.hanja (map (linkify korean active-hanja-char) hanja hanja (range))]
-       [:div.meaning (apply str (interpose " – " (map #(if (nil? %) "?" %) meaning)))]]
-      [:div
-       [:div.korean (map (linkify korean active-hanja-char) hanja korean (range))]
-       [:div.translation (:trans result)]]]
+      (map (fn [hanja-char korean-char char-meaning index]
+             ^{:key index}
+             [:div {:class (when (= active-hanja-char hanja-char) "active")
+                    :on-click #(rf/dispatch [:set-word active-word index])}
+              [:div.hanja hanja-char]
+              [:div.korean korean-char]
+              [:div.meaning char-meaning]])
+           hanja korean meaning (range))]
 
      [examples]]))
 
@@ -125,6 +148,11 @@
 
 (defn app []
   [:div
-   [input {:value (listen [:get-in [:input]])
-           :on-change #(rf/dispatch [:set-word % 0])}]
+   "검색:" [input {:value (listen [:get-in [:input]])
+                   :style {:border-width "0"
+                           :border-bottom "0.05em solid black"
+                           :padding "0.3em"
+                           :font-size "16px"}
+                   :on-change #(rf/dispatch [:set-word % 0])
+                   :placeholder "Suche"}]
    [results]])
