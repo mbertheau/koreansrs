@@ -39,25 +39,18 @@
 
 (defn korean [input]
   (let [matching-words (filter #(= input (% 0)) data/words)
-        input-length (count input)
-        is-one-char-input? (= 1 input-length)
-        matching-words-empty? (empty? matching-words)
-        debug-info {:korean input
-                    :is-one-char-input is-one-char-input?
-                    :input-length input-length
-                    :matching-words-empty? matching-words-empty?}]
+        is-one-char-input? (= 1 (count input))
+        matching-words-empty? (empty? matching-words)]
     (if (or is-one-char-input? matching-words-empty?)
-      (let [partially-matching-words (filter #(clojure.string/includes? (% 0) input) data/words)]
-        [(merge debug-info
-                {:words (mapv words-containing-one-korja input)})])
+      (let [partial-matches (mapv words-containing-one-korja input)]
+        [{:words partial-matches}])
       (for [matching-word matching-words
             :let [[korean hanja trans] matching-word]]
-        (merge debug-info
-               {:korean input
-                :trans trans
-                :hanja hanja
-                :meaning (map one-hanja-meaning hanja)
-                :words (mapv words-containing-one-hanja hanja)})))))
+        {:korean input
+         :trans trans
+         :hanja hanja
+         :meaning (map one-hanja-meaning hanja)
+         :words (mapv words-containing-one-hanja hanja)}))))
 
 (rf/reg-sub
  :get-in
@@ -65,10 +58,22 @@
    (get-in db path)))
 
 (rf/reg-sub
- :result
+ :all-results
  :<- [:get-in [:output]]
  (fn [output _]
-   (-> output korean first)))
+   (-> output korean)))
+
+(rf/reg-sub
+ :result
+ :<- [:all-results]
+ (fn [all-results [_ i]]
+   (-> all-results (get i))))
+
+(rf/reg-sub
+ :results-count
+ :<- [:all-results]
+ (fn [all-results _]
+   (count all-results)))
 
 (rf/reg-sub
  :char-index
@@ -78,10 +83,10 @@
 
 (rf/reg-sub
  :res-examples
- :<- [:result]
+ :<- [:result i]
  :<- [:char-index]
- (fn [[result char-index] _]
-   (sort-by first (-> result :words (get char-index)))))
+ (fn [[result char-index] [_ i]]
+   (sort-by first (-> result :words (get i) (get char-index)))))
 
 #_(defsub res-examples
   [result [:result]
@@ -138,11 +143,14 @@
      [examples]]))
 
 (defn results []
-  [:div {:id "results"}
-   [result]
-   #_(doall (for [res (data/korean (listen [:get-in [:output]]))]
-            ^{:key (:korean res)}
-            [result]))])
+  (let [res-count (listen [:res-count])]
+    [:div {:id "results"}
+     (doall (for [i (range res-count)]
+              ^{:key i}
+              [result i]))
+     #_(doall (for [res (data/korean (listen [:get-in [:output]]))]
+                ^{:key (:korean res)}
+                [result]))]))
 
 (defn input [{:keys [value on-change]
               :as attrs}]
