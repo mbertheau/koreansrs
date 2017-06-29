@@ -31,18 +31,33 @@
 (defn words-containing-one-hanja [c]
   (filterv #(clojure.string/includes? (% 1) (str c)) data/words))
 
+(defn words-containing-one-korja [c]
+  (filterv #(clojure.string/includes? (% 0) (str c)) data/words))
+
 (defn one-hanja-meaning [c]
   (data/hanja c))
 
 (defn korean [input]
-  (let [matching-words (filter #(= input (% 0)) data/words)]
-    (for [matching-word matching-words
-          :let [[korean hanja trans] matching-word]]
-      {:korean input
-       :trans trans
-       :hanja hanja
-       :meaning (map one-hanja-meaning hanja)
-       :words (mapv words-containing-one-hanja hanja) })))
+  (let [matching-words (filter #(= input (% 0)) data/words)
+        input-length (count input)
+        is-one-char-input? (= 1 input-length)
+        matching-words-empty? (empty? matching-words)
+        debug-info {:korean input
+                    :is-one-char-input is-one-char-input?
+                    :input-length input-length
+                    :matching-words-empty? matching-words-empty?}]
+    (if (or is-one-char-input? matching-words-empty?)
+      (let [partially-matching-words (filter #(clojure.string/includes? (% 0) input) data/words)]
+        [(merge debug-info
+                {:words (mapv words-containing-one-korja input)})])
+      (for [matching-word matching-words
+            :let [[korean hanja trans] matching-word]]
+        (merge debug-info
+               {:korean input
+                :trans trans
+                :hanja hanja
+                :meaning (map one-hanja-meaning hanja)
+                :words (mapv words-containing-one-hanja hanja)})))))
 
 (rf/reg-sub
  :get-in
