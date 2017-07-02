@@ -14,7 +14,8 @@
    [re-frame "0.9.4"]
    [re-frisk "0.4.5"]
    [binaryage/devtools "0.9.4"]
-   [powerlaces/boot-cljs-devtools "0.2.0"]])
+   [powerlaces/boot-cljs-devtools "0.2.0"]
+   [secretary "1.2.3"]])
 
 (require '[adzerk.boot-cljs :refer [cljs]]
          '[pandeiro.boot-http :refer [serve]]
@@ -29,7 +30,7 @@
    (reload :on-jsload 'koreansrs.core/mount-root)
    (cljs-repl)
    (cljs-devtools)
-   (cljs)
+   (cljs :compiler-options {:preloads '[devtools.preload]})
    (target :dir #{"target"})))
 
 (deftask build []

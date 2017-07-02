@@ -3,6 +3,7 @@
 
 from __future__ import unicode_literals
 
+from collections import defaultdict
 import re
 
 data = list(map(lambda line: line[:-1].decode('UTF-8'), open('Korean__Words.csv')))
@@ -15,6 +16,7 @@ non_matches = []
 length_mismatches = []
 with_alternatives = []
 matches = []
+meanings = defaultdict(list)
 
 def strip_quotes(s):
     if s.startswith('"') and s.endswith('"'):
@@ -23,6 +25,24 @@ def strip_quotes(s):
 
 def is_han(c):
     '\u4e00' < c < '\u9fff'
+
+def words_to_clojure(matches):
+    return "\n".join(
+        '["{k}" "{h}" "{tr}"]'
+        .format(
+            k=korean,
+            ks=" " * (16 - len(korean) * 2),
+            h=hanja,
+            hs="\t",
+            tr=translation,
+            m=meaning)
+        for korean, hanja, translation, meaning in matches)
+
+def meanings_to_clojure(meanings):
+    return "\n".join(
+        '\\{h} "{m}"'.format(
+            h=k, m=v)
+        for k, v in meanings.items())
 
 def main():
     for row in data:
@@ -67,20 +87,19 @@ def main():
             length_mismatches.append(record)
             continue
 
+        for h_c, m in zip(hanja, meaning.split('-')):
+            meanings[h_c].append(m.strip())
+
         matches.append(record)
 
+    clean_meanings = {k: ", ".join(x for x in list(set(v)) if x)
+                      for k, v in meanings.items()
+                      if any(v) and k.strip()}
 
     # print("{}/{}/{} non-matches:".format(len(sure_non_matches), len(non_matches), len(data)))
     # s = "\n".join(sure_non_matches)
-    # s = "\n".join(non_matches)
-    s = "\n".join('["{k}" "{h}" "{tr}"]'.format(
-        k=korean,
-        ks=" " * (16 - len(korean) * 2),
-        h=hanja,
-        hs="\t",
-        tr=translation,
-        m=meaning)
-                  for korean, hanja, translation, meaning in matches)
+    s = "\n".join(non_matches)
+
     # s = "\n".join("{k}{ks}{h}{hs}{tr}".format(
     #     k=korean,
     #     ks=" " * (16 - len(korean) * 2),
@@ -89,7 +108,14 @@ def main():
     #     tr=translation,
     #     m=meaning)
     #               for korean, hanja, translation, meaning in matches)
-    # s = "\n".join("\t".join(r) for r in matches)
+    # s = "\n".join("\t".join(r) for r in sure_non_matches)
+
+    # s = words_to_clojure(matches)
+
+    # s = "\n".join("{}: {}".format(k, v) for k, v in clean_meanings.items())
+
+    s = meanings_to_clojure(clean_meanings)
+
     print(s.encode('UTF-8'))
 
 

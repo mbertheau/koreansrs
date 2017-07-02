@@ -3,17 +3,26 @@
   <head>
     <title>Learn Korean</title>
     <style type="text/css">
+     input:focus {
+         outline-style: none;
+     }
+     div.char-result-group,
+     div.word-results,
      div.explanation,
      div.examples {
          display: table;
          border-spacing: 0.3em;
      }
 
+     div.char-result,
+     div.word-result,
      div.explanation > div,
      div.examples > div.example {
          display: table-row;
      }
 
+     div.char-result > div,
+     div.word-result > div,
      div.explanation > div > div,
      div.example > div.korean,
      div.example > div.hanja,
@@ -21,7 +30,7 @@
          display: table-cell;
      }
 
-     .active {
+     .queried {
          color: rgb(128, 0, 0);
      }
     </style>
