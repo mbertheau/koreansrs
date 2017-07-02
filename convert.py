@@ -7,9 +7,10 @@ from collections import defaultdict
 import re
 
 data = list(map(lambda line: line[:-1].decode('UTF-8'), open('Korean__Words.csv')))
+#data = list(map(lambda line: line[:-1].decode('UTF-8'), open('Korean__Words.csv')))[57:58]
 
 LEFT_RE = re.compile(r'^(.*)\((.*)\)$')
-RIGHT_RE = re.compile(r'^(.*)\((.*)\)')
+RIGHT_RE = re.compile(r'^(.*?)\((.*?)\)')
 
 sure_non_matches = []
 non_matches = []
@@ -27,22 +28,21 @@ def is_han(c):
     '\u4e00' < c < '\u9fff'
 
 def words_to_clojure(matches):
-    return "\n".join(
-        '["{k}" "{h}" "{tr}"]'
+    return "(def words [\n{}])\n\n".format("\n".join(
+        '            ["{k}" "{h}" "{tr}"]'
         .format(
             k=korean,
             ks=" " * (16 - len(korean) * 2),
             h=hanja,
             hs="\t",
-            tr=translation,
-            m=meaning)
-        for korean, hanja, translation, meaning in matches)
+            tr=translation)
+        for korean, hanja, translation, _ in matches))
 
 def meanings_to_clojure(meanings):
-    return "\n".join(
-        '\\{h} "{m}"'.format(
+    return "(def hanja {\n" + "\n".join(
+        '            \\{h} "{m}"'.format(
             h=k, m=v)
-        for k, v in meanings.items())
+        for k, v in meanings.items()) + "})\n\n"
 
 def main():
     for row in data:
@@ -77,7 +77,7 @@ def main():
                 else:
                     hanja += '--'
 
-        record = (korean, hanja, translation, meaning)
+        record = (korean, hanja, translation.strip(), meaning)
 
         if len(korean) != len(hanja):
             if '/' in hanja:
@@ -110,11 +110,11 @@ def main():
     #               for korean, hanja, translation, meaning in matches)
     # s = "\n".join("\t".join(r) for r in sure_non_matches)
 
-    # s = words_to_clojure(matches)
+    # s = meanings_to_clojure(clean_meanings)
+    # s += words_to_clojure(matches)
 
     # s = "\n".join("{}: {}".format(k, v) for k, v in clean_meanings.items())
 
-    s = meanings_to_clojure(clean_meanings)
 
     print(s.encode('UTF-8'))
 
