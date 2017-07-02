@@ -15,7 +15,7 @@
    [re-frisk "0.4.5"]
    [binaryage/devtools "0.9.4"]
    [powerlaces/boot-cljs-devtools "0.2.0"]
-   [secretary "1.2.3"]])
+   [com.smxemail/re-frame-document-fx "0.0.1-SNAPSHOT"]])
 
 (require '[adzerk.boot-cljs :refer [cljs]]
          '[pandeiro.boot-http :refer [serve]]

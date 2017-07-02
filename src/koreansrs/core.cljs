@@ -1,32 +1,26 @@
 (ns koreansrs.core
-  (:require [goog.events :as events]
-            [reagent.core :as reagent]
+  (:require [clojure.string :as s]
+            [goog.events :as events]
+            [koreansrs.app :as app]
+            [koreansrs.config :as config]
             [re-frame.core :as rf]
             [re-frisk.core :refer [enable-re-frisk!]]
-            [secretary.core :as secretary :refer-macros [defroute]]
-            [koreansrs.app :as app])
-  (:import [goog History]
-           [goog.history EventType]))
-
-(def debug?
-  ^boolean goog.DEBUG)
+            [reagent.core :as reagent])
+  (:import goog.History
+           goog.history.EventType))
 
 (defn dev-setup []
-  (when debug?
+  (when config/debug?
     (enable-console-print!)
     (enable-re-frisk! {:kind->id->handler? true
                        :events? false})))
 
-(defroute "/:query" [query]
-  (rf/dispatch [:set-query query]))
-
-(def history
+(defonce history
   (doto (History.)
-    (events/listen EventType.NAVIGATE
-                   (fn [event] (do
-                                 (let [something (.-token event)]
-                                   (console.log something)
-                                   (secretary/dispatch! something)))))
+    (events/listen EventType.NAVIGATE #(let [s (-> % .-token)]
+                                         (rf/dispatch (if (empty? s)
+                                                        [:go-to-random-word]
+                                                        [:set-query s]))))
     (.setEnabled true)))
 
 (defn mount-root []

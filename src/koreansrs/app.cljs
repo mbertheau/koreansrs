@@ -1,28 +1,34 @@
 (ns koreansrs.app
   (:require [reagent.core :as r]
             [re-frame.core :as rf]
-            [secretary.core :as secretary]
             [koreansrs.data :as data]
-            [koreansrs.utils :refer-macros [r-sub]]))
+            [koreansrs.config :as config]
+            [koreansrs.utils :refer-macros [r-sub]]
+            [com.smxemail.re-frame-document-fx]))
 
 (rf/reg-event-db
  :init-db
+ (when config/debug? [rf/debug])
  (fn [_ _]
-   (let [word (-> data/words
-                  rand-nth
-                  (get 0))]
-     {:hanja data/hanja
-      :words data/words
-      :input word
-      :output word})))
+   {:hanja data/hanja
+    :words data/words}))
 
-(rf/reg-event-db
- :assoc-in
- (fn [db [_ path new-value]]
-   (assoc-in db path new-value)))
+(rf/reg-event-fx
+ :go-to-random-word
+ (when config/debug? [rf/debug])
+ (fn [{:keys [db]} _]
+   (let [word (-> db :words rand-nth (get 0))]
+     {:dispatch [:navigate-to word]})))
+
+(rf/reg-event-fx
+ :navigate-to
+ (when config/debug? [rf/debug])
+ (fn [_ [_ dest]]
+   {:document/location-assign {:url (str "#" dest)}}))
 
 (rf/reg-event-db
  :set-query
+ (when config/debug? [rf/debug])
  (fn [db [_ new-query]]
    (-> db
        (assoc :input new-query)
@@ -30,15 +36,19 @@
 
 (defn listen [v] (deref (rf/subscribe v)))
 
-(r-sub get-in [path] []
-         (get-in db path))
+(r-sub :get-in [path] []
+       (get-in db path))
 
 (defn query-result
-  ":char-matches is a list of lists (groups) of hangeul - hanja - meaning 3-vectors.
+  ":char-matches is a list of lists (groups) of hangeul - hanja - meaning
+  3-vectors.
 
-  In the case of single char queries there's only one group with all hanjas for the given hangeul, or all hangeul pronounciations for the given hanja.
+  In the case of single char queries there's only one group with all hanjas for
+  the given hangeul, or all hangeul pronounciations for the given hanja.
 
-  In the case of multi char queries, there's a group for each exactly matching word, where each group contains meaning for each character in the matching word.
+  In the case of multi char queries, there's a group for each exactly matching
+  word, where each group contains meaning for each character in the matching
+  word.
 
   :word-matches is a list of 3-vectors word - hanja - meaning.
   "
@@ -48,8 +58,8 @@
       {:char-matches []
        :word-matches []}
       (let [matches (filterv #(or (clojure.string/includes? (% 0) query)
-                                 (clojure.string/includes? (% 1) query))
-                            words)]
+                                  (clojure.string/includes? (% 1) query))
+                             words)]
         {:char-matches (if (= 1 query-len)
                          (->> matches
                                         ; extract geulja - hanja pairs from words
@@ -79,8 +89,10 @@
          :word-matches matches}))))
 
 
-(r-sub :result [] [output [:get-in [:output]]]
-       (query-result data/words data/hanja output))
+(r-sub :result [] [output [:get-in [:output]]
+                   words [:get-in [:words]]
+                   hanja [:get-in [:hanja]]]
+       (query-result words hanja output))
 
 (r-sub :char-results [] [result [:result]]
        (:char-matches result))
@@ -97,15 +109,15 @@
 (r-sub :char-result [i j] [char-result-group [:char-result-group i]]
        (get char-result-group j))
 
-(defn activate [new-query text]
-  [:a {:href (str "#/" new-query)} text])
+(defn link-to [new-query]
+  {:on-click #(rf/dispatch [:navigate-to new-query])})
 
 (defn char-result [i j]
   (let [[hanja geulja meaning] (listen [:char-result i j])]
     [:div.char-result
-     [:div.hanja (activate hanja hanja)]
-     [:div.geulja (activate geulja geulja)]
-     [:div.meaning (activate hanja meaning)]]))
+     [:div.hanja (link-to hanja) hanja]
+     [:div.geulja (link-to geulja) geulja]
+     [:div.meaning (link-to hanja) meaning]]))
 
 (defn char-result-group [i]
   [:div.char-result-group
@@ -130,11 +142,11 @@
         query (listen [:get-in [:output]])
         highlight-queried #(map (fn [c] [:span {:class (when (= c query) "queried")} c]) %)]
     [:div.word-result
-     [:div.korean (activate korean (map highlight-queried korean))]
+     [:div.korean (link-to korean) (map highlight-queried korean)]
      [:div.hanja (map-indexed (fn [index hanja-char]
                                 ^{:key index}
-                                [:span (activate hanja-char hanja-char)]) hanja)]
-     [:div.meaning (activate korean meaning)]]))
+                                [:span (link-to hanja-char) hanja-char]) hanja)]
+     [:div.meaning (link-to korean) meaning]]))
 
 (r-sub :num-word-results [] [word-results [:word-results]]
        (count word-results))
@@ -174,6 +186,6 @@
                            :border-bottom "0.05em solid black"
                            :padding "0.3em"
                            :font-size "16px"}
-                   :on-change #(rf/dispatch [:set-query %])
+                   :on-change #(when (not (empty? %)) (rf/dispatch [:navigate-to %]))
                    :placeholder "검색"}]
    [results]])
