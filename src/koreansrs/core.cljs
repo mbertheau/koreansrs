@@ -18,9 +18,11 @@
 (defonce history
   (doto (History.)
     (events/listen EventType.NAVIGATE #(let [s (-> % .-token)]
-                                         (rf/dispatch (if (empty? s)
-                                                        [:go-to-random-word]
-                                                        [:set-query s]))))
+                                         (do (console.log %)
+                                             (if-not (s/starts-with? s "id_token=")
+                                               (rf/dispatch (if (empty? s)
+                                                              [:go-to-random-word]
+                                                              [:set-query s]))))))
     (.setEnabled true)))
 
 (defn mount-root []
@@ -28,6 +30,6 @@
   (reagent/render [app/app] (.getElementById js/document "app")))
 
 (defn ^:export main []
-  (rf/dispatch-sync [:init-db])
   (dev-setup)
+  (rf/dispatch-sync [:init])
   (mount-root))

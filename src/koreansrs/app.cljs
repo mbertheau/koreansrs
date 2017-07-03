@@ -1,38 +1,31 @@
 (ns koreansrs.app
-  (:require [reagent.core :as r]
-            [re-frame.core :as rf]
-            [koreansrs.data :as data]
+  (:require [clojure.string :as s]
+            com.smxemail.re-frame-document-fx
             [koreansrs.config :as config]
-            [koreansrs.utils :refer-macros [r-sub]]
-            [com.smxemail.re-frame-document-fx]))
+            koreansrs.google-api
+            [koreansrs.utils :refer-macros [r-sub r-event-fx r-event-db]]
+            [re-frame.core :as rf]
+            [reagent.core :as r]))
 
-(rf/reg-event-db
- :init-db
- (when config/debug? [rf/debug])
- (fn [_ _]
-   {:hanja data/hanja
-    :words data/words}))
+(r-event-fx :init []
+            {:db (-> db
+                     (assoc :hanja {})
+                     (assoc :words [])
+                     (assoc :auth :initializing))
+             :gapi/init {:client-id "317426179182-6p56pl2v7iar72k417kp84g3s9r58a4a.apps.googleusercontent.com"
+                         :signed-in-changed #(rf/dispatch [:signed-in-changed %])}})
 
-(rf/reg-event-fx
- :go-to-random-word
- (when config/debug? [rf/debug])
- (fn [{:keys [db]} _]
-   (let [word (-> db :words rand-nth (get 0))]
-     {:dispatch [:navigate-to word]})))
+(r-event-fx :go-to-random-word []
+            (let [word (-> db :words rand-nth (get 0))]
+              {:dispatch [:navigate-to word]}))
 
-(rf/reg-event-fx
- :navigate-to
- (when config/debug? [rf/debug])
- (fn [_ [_ dest]]
-   {:document/location-assign {:url (str "#" dest)}}))
+(r-event-fx :navigate-to [dest]
+            {:document/location-assign {:url (str "#" dest)}})
 
-(rf/reg-event-db
- :set-query
- (when config/debug? [rf/debug])
- (fn [db [_ new-query]]
-   (-> db
-       (assoc :input new-query)
-       (assoc :output new-query))))
+(r-event-db :set-query [new-query]
+            (-> db
+                (assoc :input new-query)
+                (assoc :output new-query)))
 
 (defn listen [v] (deref (rf/subscribe v)))
 
@@ -117,7 +110,10 @@
     [:div.char-result
      [:div.hanja (link-to hanja) hanja]
      [:div.geulja (link-to geulja) geulja]
-     [:div.meaning (link-to hanja) meaning]]))
+     [:div.meaning (link-to hanja) meaning]
+     #_[:a {:href (str "https://en.wiktionary.org/wiki/" hanja)} "Wiktionary"]
+     [:a {:href (str "plecoapi://x-callback-url/s?q=" hanja)} "Pleco"]
+     ]))
 
 (defn char-result-group [i]
   [:div.char-result-group
@@ -140,7 +136,7 @@
 (defn word-result [i]
   (let [[korean hanja meaning] (listen [:word-result i])
         query (listen [:get-in [:output]])
-        highlight-queried #(map (fn [c] [:span {:class (when (= c query) "queried")} c]) %)]
+        highlight-queried #(map-indexed (fn [i c] ^{:key i} [:span {:class (when (= c query) "queried")} c]) %)]
     [:div.word-result
      [:div.korean (link-to korean) (map highlight-queried korean)]
      [:div.hanja (map-indexed (fn [index hanja-char]
@@ -179,13 +175,106 @@
                                          (on-change new-value))))
                   (assoc :type "text"))])))
 
+(r-event-fx :sign-in []
+            {:gapi/sign-in {}})
+
+(r-event-fx :sign-out []
+            {:gapi/sign-out {}})
+
+(r-event-fx :signed-in-changed [new-signed-in?]
+            (let [loaded? (-> db :loaded?)
+                  effect {:db (-> db
+                                  (assoc :signed-in? new-signed-in?)
+                                  (assoc :auth :initialized))}]
+              (if (and (not loaded?) new-signed-in?)
+                (assoc effect :dispatch [:load])
+                effect)))
+
+(def spreadsheet-id "1k5m7LzcFK2yhdrg7qHsEhiPUM4EWD0jjO2n1A2qPQAU")
+
+(r-event-fx :load []
+            {:gapi/batchGet {:request {:spreadsheetId spreadsheet-id
+                                       :ranges ["Words!A:C" "Hanja!A:B"]}
+                             :then #(rf/dispatch [:data-loaded %])}})
+
+(r-event-db :data-loaded [data]
+            (let [words (->> data
+                             (filter #(s/starts-with? (:range %) "Words!"))
+                             first
+                             :values)
+                  hanja (->> data
+                             (filter #(s/starts-with? (:range %) "Hanja!"))
+                             first
+                             :values
+                             (map #(hash-map (first %) (second %)))
+                             (apply merge))]
+              (-> db
+                  (assoc :data data)
+                  (assoc :hanja hanja)
+                  (assoc :words words)
+                  (assoc :loaded? true))))
+
+(r-event-fx :save []
+            {:gapi/batchUpdate {:request {:spreadsheetId spreadsheet-id
+                                          :data [{:range "Words!A:C"
+                                                  :majorDimension "ROWS"
+                                                  :values (:words db)}
+                                                 {:range "Hanja!A:B"
+                                                  :majorDimension "ROWS"
+                                                  :values (mapv vec (:hanja db))}]
+                                          :valueInputOption "RAW"}
+                                :then console.log}})
+
+(r-sub :signed-in? [] [] (:signed-in? db))
+
+(defn sign-in-out-button []
+  (let [signed-in? (listen [:signed-in?])]
+    [:button {:on-click #(rf/dispatch [(if signed-in? :sign-out :sign-in)])}
+     (if signed-in? "Sign out" "Sign in")]))
+
+(defn load-button []
+  [:button {:on-click #(rf/dispatch [:load])}
+   "Reload"])
+
+(defn save-button []
+  [:button {:on-click #(rf/dispatch [:save])}
+   "Save"])
+
+(r-sub :num-hanja [] [hanja [:get-in [:hanja]]]
+       (count hanja))
+
+(r-sub :num-words [] [words [:get-in [:words]]]
+       (count words))
+
+(defn stats []
+  [:span " " (listen [:num-words]) " Words, " (listen [:num-hanja]) " Hanja"])
+
+(defn state []
+  (let [auth (listen [:get-in [:auth]])]
+    [:div
+     (if (= :initializing auth)
+       [:span " Signing in... "]
+       [sign-in-out-button])
+     (when (= :initialized auth)
+       (if (not (listen [:get-in [:loaded?]]))
+         [:span " Loading... "]
+         [load-button]))]))
+
+(defn query-input []
+  [input {:value (listen [:get-in [:input]])
+          :style {:border-width "0"
+                  :border-bottom "0.05em solid white"
+                  :padding "0.3em"
+                  :font-size "16px"}
+          :on-change #(when (not (empty? %)) (rf/dispatch [:navigate-to %]))
+          :placeholder "검색"}])
+
 (defn app []
-  [:div
-   "검색:" [input {:value (listen [:get-in [:input]])
-                   :style {:border-width "0"
-                           :border-bottom "0.05em solid black"
-                           :padding "0.3em"
-                           :font-size "16px"}
-                   :on-change #(when (not (empty? %)) (rf/dispatch [:navigate-to %]))
-                   :placeholder "검색"}]
-   [results]])
+  [:div.container
+   [:header
+    [:a.hamburger "☰"]
+    [query-input]]
+   [:div.content
+    [state]
+    [results]]
+   [:footer [stats]]])

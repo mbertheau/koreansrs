@@ -1,11 +1,57 @@
 <!doctype html>
 <html>
   <head>
-    <title>Learn Korean</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>한자Connection</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="theme-color" content="#38e335">
+    <link href="/normalize.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700" rel="stylesheet">
     <style type="text/css">
-     input:focus {
+     html {
+         height: 100%;
+     }
+
+     body {
+         font-family: "Roboto", "Helvetica Neue", Helvetica, sans-serif;
+         height: 100%;
+         font-size: larger;
+     }
+
+     .container {
+         display: grid;
+         grid-template-columns: auto;
+         grid-template-rows: 48px auto 48px;
+         grid-row-gap: 10px;
+         height: 100%;
+     }
+
+     header {
+         background-color: #00f;
+         color: white;
+         display: grid;
+         grid-template-columns: 48px auto 48px;
+         justify-items: center;
+         align-items: center;
+     }
+
+     header input {
+         background-color: inherit;
+         color: inherit;
+         width: 100%;
+     }
+
+     header input:focus {
          outline-style: none;
      }
+
+
      div.char-result-group,
      div.word-results,
      div.explanation,
@@ -33,11 +79,54 @@
      .queried {
          color: rgb(128, 0, 0);
      }
+
+     footer {
+         background-color: #00f;
+         color: white;
+         display: grid;
+         justify-items: center;
+         align-items: center;
+     }
     </style>
+    <script src="https://apis.google.com/js/api.js"></script>
   </head>
   <body>
     <script src="main.js"></script>
-    <div id="app"></div>
-    <script>koreansrs.core.main();</script>
+    <div id="app" style="height: 100%"></div>
+    <script>
+     function doInit(clientId, signedInChanged) {
+         function afterInit() {
+             gapi.auth2.getAuthInstance().isSignedIn.listen(signedInChanged);
+             signedInChanged(gapi.auth2.getAuthInstance().isSignedIn.get());
+         }
+
+         function startAuth() {
+             gapi.client.init({"clientId": clientId,
+                               "scope": "https://www.googleapis.com/auth/spreadsheets",
+                               "discoveryDocs": ["https://sheets.googleapis.com/$discovery/rest?version=v4"]}
+             ).then(afterInit);
+         };
+
+         gapi.load("client:auth2", startAuth);
+     };
+
+     function doSignIn() {
+         gapi.auth2.getAuthInstance().signIn({"ux_mode": "redirect"});
+     };
+
+     function doSignOut() {
+         gapi.auth2.getAuthInstance().signOut();
+     };
+
+     function batchGet(request, then) {
+         gapi.client.sheets.spreadsheets.values.batchGet(request).then(then);
+     };
+
+     function batchUpdate(request, then) {
+         gapi.client.sheets.spreadsheets.values.batchUpdate(request).then(then);
+     };
+
+     koreansrs.core.main();
+    </script>
   </body>
 </html>
