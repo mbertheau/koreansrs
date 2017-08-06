@@ -42,4 +42,5 @@
          :compiler-options {:parallel-build true
                             :closure-defines {'goog.DEBUG false}
                             :output-wrapper true})
+   (sift :include #{#"\.out"} :invert true)
    (target :dir #{"build"})))
