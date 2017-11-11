@@ -7,6 +7,11 @@
             [re-frame.core :as rf]
             [reagent.core :as r]))
 
+(defn listen [v] (deref (rf/subscribe v)))
+
+(r-sub :get-in [path] []
+       (get-in db path))
+
 (r-event-fx :init []
             {:db (-> db
                      (assoc :hanja {})
@@ -26,11 +31,6 @@
             (-> db
                 (assoc :input new-query)
                 (assoc :output new-query)))
-
-(defn listen [v] (deref (rf/subscribe v)))
-
-(r-sub :get-in [path] []
-       (get-in db path))
 
 (defn query-result
   ":char-matches is a list of lists (groups) of hangeul - hanja - meaning
