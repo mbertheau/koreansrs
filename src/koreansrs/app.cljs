@@ -20,9 +20,13 @@
              :gapi/init {:client-id "317426179182-6p56pl2v7iar72k417kp84g3s9r58a4a.apps.googleusercontent.com"
                          :signed-in-changed #(rf/dispatch [:signed-in-changed %])}})
 
+(defn random-word [db]
+  (let [words (:words db)]
+    (when-not (empty? words) (-> words rand-nth (get 0)))))
+
 (r-event-fx :go-to-random-word []
-            (let [word (-> db :words rand-nth (get 0))]
-              {:dispatch [:navigate-to word]}))
+            (let [word (random-word db)]
+              (when word {:dispatch [:navigate-to word]})))
 
 (r-event-fx :navigate-to [dest]
             {:document/location-assign {:url (str "#" dest)}})
