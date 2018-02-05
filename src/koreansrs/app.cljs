@@ -269,20 +269,21 @@
          [:span " Loading... "]
          [load-button]))]))
 
-(defn query-input []
-  [input {:value (listen [:get-in [:query]])
-          :style {:border-width "0"
-                  :border-bottom "0.05em solid white"
-                  :padding "0.3em"
-                  :font-size "16px"}
-          :on-change #(when (not (empty? %)) (rf/dispatch [:navigate-to %]))
-          :placeholder "검색"}])
+(defn header []
+  [:header
+   [:a.hamburger "☰"]
+   [input {:value (listen [:get-in [:query]])
+           :style {:border-width "0"
+                   :border-bottom "0.05em solid white"
+                   :padding "0.3em"
+                   :font-size "16px"}
+           :on-change #(when (not (empty? %)) (rf/dispatch [:navigate-to %]))
+           :placeholder "검색"}]
+   [:a.hamburger {:on-click #(rf/dispatch [:set-query ""])} "⨯"]])
 
 (defn app []
   [:div.container
-   [:header
-    [:a.hamburger "☰"]
-    [query-input]]
+   [header]
    [:div.content
     [state]
     [results]]
