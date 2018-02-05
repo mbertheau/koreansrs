@@ -28,9 +28,7 @@
             {:document/location-assign {:url (str "#" dest)}})
 
 (r-event-db :set-query [new-query]
-            (-> db
-                (assoc :input new-query)
-                (assoc :output new-query)))
+            (assoc db :query new-query))
 
 (defn query-result
   ":char-matches is a list of lists (groups) of hangeul - hanja - meaning
@@ -82,7 +80,7 @@
          :word-matches matches}))))
 
 
-(r-sub :result [] [output [:get-in [:output]]
+(r-sub :result [] [output [:get-in [:query]]
                    words [:get-in [:words]]
                    hanja [:get-in [:hanja]]]
        (query-result words hanja output))
@@ -135,7 +133,7 @@
 
 (defn word-result [i]
   (let [[korean hanja meaning] (listen [:word-result i])
-        query (listen [:get-in [:output]])
+        query (listen [:get-in [:query]])
         highlight-queried #(map-indexed (fn [i c] ^{:key i} [:span {:class (when (= c query) "queried")} c]) %)]
     [:div.word-result
      [:div.korean (link-to korean) (map highlight-queried korean)]
@@ -261,7 +259,7 @@
          [load-button]))]))
 
 (defn query-input []
-  [input {:value (listen [:get-in [:input]])
+  [input {:value (listen [:get-in [:query]])
           :style {:border-width "0"
                   :border-bottom "0.05em solid white"
                   :padding "0.3em"
