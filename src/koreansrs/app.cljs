@@ -31,6 +31,11 @@
 (r-event-fx :navigate-to [dest]
             {:document/location-assign {:url (str "#" dest)}})
 
+(r-event-fx :navigation-received [s]
+            {:dispatch (if (empty? s)
+                         [:go-to-random-word]
+                         [:set-query s])})
+
 (r-event-db :set-query [new-query]
             (assoc db :query new-query))
 
@@ -199,7 +204,7 @@
                                        :ranges ["Words!A:C" "Hanja!A:B"]}
                              :then #(rf/dispatch [:data-loaded %])}})
 
-(r-event-db :data-loaded [data]
+(r-event-fx :data-loaded [data]
             (let [words (->> data
                              (filter #(s/starts-with? (:range %) "Words!"))
                              first
@@ -209,12 +214,14 @@
                              first
                              :values
                              (map #(hash-map (first %) (second %)))
-                             (apply merge))]
-              (-> db
-                  (assoc :data data)
-                  (assoc :hanja hanja)
-                  (assoc :words words)
-                  (assoc :loaded? true))))
+                             (apply merge))
+                  is-somewhere? (-> db :query empty? not)]
+              {:db (-> db
+                       (assoc :data data)
+                       (assoc :hanja hanja)
+                       (assoc :words words)
+                       (assoc :loaded? true))
+               :dispatch-n [(when-not is-somewhere? [:go-to-random-word])]}))
 
 (r-event-fx :save []
             {:gapi/batchUpdate {:request {:spreadsheetId spreadsheet-id

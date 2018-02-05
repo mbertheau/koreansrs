@@ -20,9 +20,7 @@
     (events/listen EventType.NAVIGATE #(let [s (-> % .-token)]
                                          (do (console.log %)
                                              (if-not (s/starts-with? s "id_token=")
-                                               (rf/dispatch (if (empty? s)
-                                                              [:go-to-random-word]
-                                                              [:set-query (js/decodeURIComponent s)]))))))
+                                               (rf/dispatch [:navigation-received (js/decodeURIComponent s)])))))
     (.setEnabled true)))
 
 (defn mount-root []
