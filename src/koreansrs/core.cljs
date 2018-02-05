@@ -22,7 +22,7 @@
                                              (if-not (s/starts-with? s "id_token=")
                                                (rf/dispatch (if (empty? s)
                                                               [:go-to-random-word]
-                                                              [:set-query s]))))))
+                                                              [:set-query (js/decodeURIComponent s)]))))))
     (.setEnabled true)))
 
 (defn mount-root []
