@@ -273,13 +273,23 @@
   [:header
    [:a.hamburger "☰"]
    [input {:value (listen [:get-in [:query]])
+           :id "query-input"
            :style {:border-width "0"
                    :border-bottom "0.05em solid white"
                    :padding "0.3em"
                    :font-size "16px"}
            :on-change #(when (not (empty? %)) (rf/dispatch [:navigate-to %]))
            :placeholder "검색"}]
-   [:a.hamburger {:on-click #(rf/dispatch [:set-query ""])} "⨯"]])
+   [:a.hamburger {:on-click #(rf/dispatch [:delete-query])} "⨯"]])
+
+(rf/reg-fx :focus
+           (fn [element-id]
+             (console.log element-id)
+             (.focus (.getElementById js/document element-id))))
+
+(r-event-fx :delete-query []
+            {:db (assoc db :query "")
+             :focus "query-input"})
 
 (defn app []
   [:div.container
