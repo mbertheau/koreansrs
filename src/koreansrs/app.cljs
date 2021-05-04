@@ -13,11 +13,11 @@
        (get-in db path))
 
 (r-event-fx :init []
-            {:db (-> db
-                     (assoc :hanja {})
-                     (assoc :words [])
-                     (assoc :auth :initializing))
-             :gapi/init {:client-id "317426179182-6p56pl2v7iar72k417kp84g3s9r58a4a.apps.googleusercontent.com"
+            {:db        (-> db
+                            (assoc :hanja {})
+                            (assoc :words [])
+                            (assoc :auth :initializing))
+             :gapi/init {:client-id         "317426179182-6p56pl2v7iar72k417kp84g3s9r58a4a.apps.googleusercontent.com"
                          :signed-in-changed #(rf/dispatch [:signed-in-changed %])}})
 
 (defn random-word [db]
@@ -142,8 +142,8 @@
 
 (defn word-result [i]
   (let [[korean hanja meaning] (listen [:word-result i])
-        query (listen [:get-in [:query]])
-        highlight-queried #(map-indexed (fn [i c] ^{:key i} [:span {:class (when (= c query) "queried")} c]) %)]
+        query                  (listen [:get-in [:query]])
+        highlight-queried      #(map-indexed (fn [i c] ^{:key i} [:span {:class (when (= c query) "queried")} c]) %)]
     [:div.word-result
      [:div.korean (link-to korean) (map highlight-queried korean)]
      [:div.hanja (map-indexed (fn [index hanja-char]
@@ -166,11 +166,11 @@
    [word-results]])
 
 (defn input [{:keys [value on-change]
-              :as attrs}]
+              :as   attrs}]
   (let [int (r/atom value)
         ext (r/atom value)]
     (fn [{:keys [value on-change]
-          :as attrs}]
+          :as   attrs}]
       (when-not (= value @ext)
         (do (reset! int value)
             (reset! ext value)))
@@ -190,9 +190,9 @@
 
 (r-event-fx :signed-in-changed [new-signed-in?]
             (let [loaded? (-> db :loaded?)
-                  effect {:db (-> db
-                                  (assoc :signed-in? new-signed-in?)
-                                  (assoc :auth :initialized))}]
+                  effect  {:db (-> db
+                                   (assoc :signed-in? new-signed-in?)
+                                   (assoc :auth :initialized))}]
               (if (and (not loaded?) new-signed-in?)
                 (assoc effect :dispatch [:load])
                 effect)))
@@ -201,38 +201,38 @@
 
 (r-event-fx :load []
             {:gapi/batchGet {:request {:spreadsheetId spreadsheet-id
-                                       :ranges ["Words!A:C" "Hanja!A:B"]}
-                             :then #(rf/dispatch [:data-loaded %])}})
+                                       :ranges        ["Words!A:C" "Hanja!A:B"]}
+                             :then    #(rf/dispatch [:data-loaded %])}})
 
 (r-event-fx :data-loaded [data]
-            (let [words (->> data
-                             (filter #(s/starts-with? (:range %) "Words!"))
-                             first
-                             :values)
-                  hanja (->> data
-                             (filter #(s/starts-with? (:range %) "Hanja!"))
-                             first
-                             :values
-                             (map #(hash-map (first %) (second %)))
-                             (apply merge))
+            (let [words         (->> data
+                                     (filter #(s/starts-with? (:range %) "Words!"))
+                                     first
+                                     :values)
+                  hanja         (->> data
+                                     (filter #(s/starts-with? (:range %) "Hanja!"))
+                                     first
+                                     :values
+                                     (map #(hash-map (first %) (second %)))
+                                     (apply merge))
                   is-somewhere? (-> db :query empty? not)]
-              {:db (-> db
-                       (assoc :data data)
-                       (assoc :hanja hanja)
-                       (assoc :words words)
-                       (assoc :loaded? true))
+              {:db         (-> db
+                               (assoc :data data)
+                               (assoc :hanja hanja)
+                               (assoc :words words)
+                               (assoc :loaded? true))
                :dispatch-n [(when-not is-somewhere? [:go-to-random-word])]}))
 
 (r-event-fx :save []
-            {:gapi/batchUpdate {:request {:spreadsheetId spreadsheet-id
-                                          :data [{:range "Words!A:C"
-                                                  :majorDimension "ROWS"
-                                                  :values (:words db)}
-                                                 {:range "Hanja!A:B"
-                                                  :majorDimension "ROWS"
-                                                  :values (mapv vec (:hanja db))}]
+            {:gapi/batchUpdate {:request {:spreadsheetId    spreadsheet-id
+                                          :data             [{:range          "Words!A:C"
+                                                              :majorDimension "ROWS"
+                                                              :values         (:words db)}
+                                                             {:range          "Hanja!A:B"
+                                                              :majorDimension "ROWS"
+                                                              :values         (mapv vec (:hanja db))}]
                                           :valueInputOption "RAW"}
-                                :then console.log}})
+                                :then    console.log}})
 
 (r-sub :signed-in? [] [] (:signed-in? db))
 
@@ -272,13 +272,13 @@
 (defn header []
   [:header
    [:a.hamburger "☰"]
-   [input {:value (listen [:get-in [:query]])
-           :id "query-input"
-           :style {:border-width "0"
-                   :border-bottom "0.05em solid white"
-                   :padding "0.3em"
-                   :font-size "16px"}
-           :on-change #(when (not (empty? %)) (rf/dispatch [:navigate-to %]))
+   [input {:value       (listen [:get-in [:query]])
+           :id          "query-input"
+           :style       {:border-width  "0"
+                         :border-bottom "0.05em solid white"
+                         :padding       "0.3em"
+                         :font-size     "16px"}
+           :on-change   #(when (not (empty? %)) (rf/dispatch [:navigate-to %]))
            :placeholder "검색"}]
    [:a.hamburger {:on-click #(rf/dispatch [:delete-query])} "⨯"]])
 
@@ -288,7 +288,7 @@
              (.focus (.getElementById js/document element-id))))
 
 (r-event-fx :delete-query []
-            {:db (assoc db :query "")
+            {:db    (assoc db :query "")
              :focus "query-input"})
 
 (defn app []

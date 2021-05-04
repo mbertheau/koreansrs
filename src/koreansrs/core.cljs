@@ -13,7 +13,7 @@
   (when config/debug?
     (enable-console-print!)
     (enable-re-frisk! {:kind->id->handler? true
-                       :events? false})))
+                       :events?            false})))
 
 (defonce history
   (doto (History.)
