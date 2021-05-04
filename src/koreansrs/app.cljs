@@ -1,6 +1,5 @@
 (ns koreansrs.app
   (:require [clojure.string :as s]
-            com.smxemail.re-frame-document-fx
             [koreansrs.config :as config]
             koreansrs.google-api
             [koreansrs.utils :refer-macros [r-sub r-event-fx r-event-db]]
@@ -29,7 +28,11 @@
               (when word {:dispatch [:navigate-to word]})))
 
 (r-event-fx :navigate-to [dest]
-            {:document/location-assign {:url (str "#" dest)}})
+            {:assign-location (str "#" dest)})
+
+(rf/reg-fx :assign-location
+           (fn [url]
+             (.assign (goog.object/get js/document "location") url)))
 
 (r-event-fx :navigation-received [s]
             {:dispatch (if (empty? s)

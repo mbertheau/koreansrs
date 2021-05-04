@@ -2,8 +2,7 @@
  :dependencies [[reagent "1.0.0"]
                 [re-frame "1.2.0"]
                 #_[re-frisk "1.5.1"]
-                [binaryage/devtools "1.0.3"]
-                [com.smxemail/re-frame-document-fx "0.0.1-SNAPSHOT"]]
+                [binaryage/devtools "1.0.3"]]
  :dev-http {3000 ["target" "html"]}
  :builds {:app {:target :browser
                 :output-dir "target"
