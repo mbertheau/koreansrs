@@ -232,7 +232,7 @@
                                                               :majorDimension "ROWS"
                                                               :values         (mapv vec (:hanja db))}]
                                           :valueInputOption "RAW"}
-                                :then    console.log}})
+                                :then    js/console.log}})
 
 (r-sub :signed-in? [] [] (:signed-in? db))
 
@@ -284,7 +284,7 @@
 
 (rf/reg-fx :focus
            (fn [element-id]
-             (console.log element-id)
+             (js/console.log element-id)
              (.focus (.getElementById js/document element-id))))
 
 (r-event-fx :delete-query []
