@@ -3,8 +3,8 @@
                 [re-frame "1.2.0"]
                 #_[re-frisk "1.5.1"]
                 [binaryage/devtools "1.0.3"]]
- :dev-http {3000 ["target" "html"]}
+ :dev-http {3000 ["http-root"]}
  :builds {:app {:target :browser
-                :output-dir "target"
-                :asset-path "/"
+                :output-dir "http-root/cljs-out"
+                :asset-path "/cljs-out"
                 :modules {:main {:entries [koreansrs.core]}}}}}
