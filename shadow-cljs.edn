@@ -3,8 +3,35 @@
                 [re-frame "1.2.0"]
                 #_[re-frisk "1.5.1"]
                 [binaryage/devtools "1.0.3"]]
- :dev-http {3000 ["http-root"]}
- :builds {:app {:target :browser
-                :output-dir "http-root/cljs-out"
-                :asset-path "/cljs-out"
-                :modules {:main {:entries [koreansrs.core]}}}}}
+ :dev-http     {3000 ["http-root"]}
+ :npm-deps     {:install false}
+ :builds       {:web {:target     :browser
+                      :output-dir "http-root/cljs-out"
+                      :asset-path "/cljs-out"
+                      :modules    {:main {:entries [koreansrs.core]}}}
+                :app {;; set-up and defaults for react-native compilation and hot reloading
+                      :target :react-native
+
+                      ;; the function called at start-up; it registers the app with the react native app registry
+                      :init-fn hanjahanzi.react-app/init
+
+                      ;; where to put the resulting JS code to be consumed by metro, the react native bundler
+                      :output-dir "react-native/cljs-out"
+
+                      ;; JS dependencies (modules) required by ClojureScript code are
+                      ;; translated to JavaScript `require` calls. These are processed by the
+                      ;; metro bundler, so the metro bundler needs to find them.
+
+                      ;; metro looks in react-native-0.xx.0/node_modules, so these
+                      ;; dependencies have to be there.
+
+                      ;; shadow-cljs also needs to look at these modules. By default,
+                      ;; shadow-cljs looks in node_modules in this directory.
+
+                      ;; We point shadow-cljs to react-native-0.xx.x/node_modules, so that we
+                      ;; don't have to install JS dependencies twice, which would certainly
+                      ;; come with problems.
+                      :js-options {:js-package-dirs ["react-native/node_modules"]}
+
+                      ;; in dev mode, auto-reload the app on changes
+                      :devtools {:autoload true}}}}

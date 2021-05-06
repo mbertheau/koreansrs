@@ -2,3 +2,4 @@
 /node_modules
 /.shadow-cljs
 /http-root/cljs-out
+/react-native
